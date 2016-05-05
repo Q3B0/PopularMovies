@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -48,7 +49,7 @@ public class MoviesFragment extends Fragment {
     MoviesAdapter moviesAdapter;
     ArrayList<HashMap<String,Object>> moviesItem = new ArrayList<HashMap<String,Object>>();
     ArrayList<MovieInfo> movieInfos = new ArrayList<MovieInfo>();
-    NetworkChangeReceiver receiver = new NetworkChangeReceiver();
+    NetworkChangeReceiver receiver ;
     int flag = 0;
     @Nullable
     @Override
@@ -195,18 +196,27 @@ public class MoviesFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if(savedInstanceState == null){
+            UpdateMoviesData();
+            receiver = new NetworkChangeReceiver();
             setHasOptionsMenu(true);
             IntentFilter filter = new IntentFilter();
             filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
             getActivity().registerReceiver(receiver,filter);
-            UpdateMoviesData();
         }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        getActivity().unregisterReceiver(receiver);
+        if(receiver != null){
+            getActivity().unregisterReceiver(receiver);
+        }
+
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.example.jaylen.popularmovies;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.ImageView;
@@ -14,6 +15,7 @@ public class DetailActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         Intent intent = getIntent();
         this.setTitle(intent.getStringExtra("TITLE"));
         ((TextView) findViewById(R.id.txttitle)).setText("Title:" + "\n" + intent.getStringExtra("TITLE") + "/" + intent.getStringExtra("O_TITLE"));
@@ -23,6 +25,4 @@ public class DetailActivity extends AppCompatActivity {
         ((TextView)findViewById(R.id.txtOverview)).setText("Overview:" + "\n" + intent.getStringExtra("OVERVIEW"));
 
     }
-
-
 }
