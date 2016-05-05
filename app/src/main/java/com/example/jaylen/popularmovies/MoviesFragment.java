@@ -1,8 +1,13 @@
 package com.example.jaylen.popularmovies;
 
 import android.app.Fragment;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -19,6 +24,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.GridView;
 import android.widget.SimpleAdapter;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -31,19 +37,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.SocketException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
 
-/**
- * Created by jayle on 2016/4/30.
- */
 public class MoviesFragment extends Fragment {
     GridView moviesView ;
     MoviesAdapter moviesAdapter;
     ArrayList<HashMap<String,Object>> moviesItem = new ArrayList<HashMap<String,Object>>();
     ArrayList<MovieInfo> movieInfos = new ArrayList<MovieInfo>();
+    NetworkChangeReceiver receiver = new NetworkChangeReceiver();
+    int flag = 0;
     @Nullable
     @Override
     public View onCreateView(final LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -59,6 +65,7 @@ public class MoviesFragment extends Fragment {
                 intent.putExtra("DATE",movieInfos.get(position).release_date);
                 intent.putExtra("OVERVIEW",movieInfos.get(position).overview);
                 intent.putExtra("RATE",movieInfos.get(position).vote_average);
+                flag = 0;
                 startActivity(intent);
             }
         });
@@ -106,9 +113,10 @@ public class MoviesFragment extends Fragment {
                 }
 
                 moviesJsonStr = buffer.toString();
-            }catch (IOException e){
+            } catch (IOException e){
                 Log.e(LOG_TAG,e.getMessage());
-            }finally {
+                //Toast.makeText(getContext(),"We Cannot Connect to the Internet,Please Open The Internet Connection and Try Again",Toast.LENGTH_SHORT).show();
+            } finally {
                 if(urlConnection != null){
                     urlConnection.disconnect();
                 }
@@ -122,12 +130,16 @@ public class MoviesFragment extends Fragment {
             }
 
             try {
-                return getMoviesDataFromJson(moviesJsonStr);
+                if(moviesJsonStr != null){
+                    return getMoviesDataFromJson(moviesJsonStr);
+                }else {
+                    return null;
+                }
             }catch (JSONException e){
                 Log.e(LOG_TAG,e.getMessage(),e);
                 e.printStackTrace();
+                return null;
             }
-            return null;
         }
 
         @Override
@@ -172,18 +184,35 @@ public class MoviesFragment extends Fragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
-        UpdateMoviesData();
+    public void onResume() {
+        super.onResume();
+        if(flag == 1){
+            UpdateMoviesData();
+        }
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
-        UpdateMoviesData();
+        if(savedInstanceState == null){
+            setHasOptionsMenu(true);
+            IntentFilter filter = new IntentFilter();
+            filter.addAction("android.net.conn.CONNECTIVITY_CHANGE");
+            getActivity().registerReceiver(receiver,filter);
+            UpdateMoviesData();
+        }
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        getActivity().unregisterReceiver(receiver);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+    }
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.moviesfragment,menu);
@@ -196,15 +225,38 @@ public class MoviesFragment extends Fragment {
             UpdateMoviesData();
             return true;
         }else if(id == R.id.action_setting){
+            flag = 1;
             startActivity(new Intent(getActivity(),SettingsActivity.class));
         }
         return super.onOptionsItemSelected(item);
     }
 
     private void UpdateMoviesData(){
-        FetchMoviesTask task = new FetchMoviesTask();
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String sort_order = prefs.getString(getString(R.string.pref_sort_key),getString(R.string.pref_sort_pop_value));
-        task.execute(sort_order);
+        ConnectivityManager manager = (ConnectivityManager)getActivity().getSystemService(getActivity().CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+        if(networkInfo != null && networkInfo.isAvailable()){
+            FetchMoviesTask task = new FetchMoviesTask();
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            String sort_order = prefs.getString(getString(R.string.pref_sort_key),getString(R.string.pref_sort_pop_value));
+            task.execute(sort_order);
+        }else {
+            Toast.makeText(getActivity(),"Network is disconnected",Toast.LENGTH_SHORT).show();
+        }
+
+
+    }
+
+    class NetworkChangeReceiver extends BroadcastReceiver{
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            ConnectivityManager manager = (ConnectivityManager)getActivity().getSystemService(getActivity().CONNECTIVITY_SERVICE);
+            NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+            if(networkInfo != null  && networkInfo.isAvailable()){
+                Toast.makeText(getActivity(),"Network is connected",Toast.LENGTH_SHORT).show();
+                UpdateMoviesData();
+            }else {
+                Toast.makeText(getActivity(),"Network is disconnected",Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }

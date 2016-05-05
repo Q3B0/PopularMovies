@@ -23,4 +23,6 @@ public class DetailActivity extends AppCompatActivity {
         ((TextView)findViewById(R.id.txtOverview)).setText("Overview:" + "\n" + intent.getStringExtra("OVERVIEW"));
 
     }
+
+
 }
