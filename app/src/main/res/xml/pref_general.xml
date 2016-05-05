@@ -3,7 +3,7 @@
     <ListPreference
         android:title="@string/pref_sort_lable"
         android:key="@string/pref_sort_key"
-        android:defaultValue="@string/pref_sort_pop"
+        android:defaultValue="@string/pref_sort_pop_value"
         android:entryValues="@array/pref_order_values"
         android:entries="@array/pref_order_opotions"
         />
